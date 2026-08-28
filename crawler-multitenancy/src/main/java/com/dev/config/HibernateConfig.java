@@ -25,14 +25,13 @@ public class HibernateConfig {
 
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);
-        em.setPackagesToScan("com.dev.domain");
+        em.setPackagesToScan("com.dev.entity", "com.dev.domain");
 
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
 
         Map<String, Object> properties = new HashMap<>(jpaProperties.getProperties());
 
-        // Cấu hình Multi-Tenancy Strategy per SCHEMA
         properties.put(AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER, connectionProvider);
         properties.put(AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER, tenantResolver);
         properties.put(AvailableSettings.HBM2DDL_AUTO, "none"); // Tắt hbm2ddl để Flyway quản lý

@@ -18,16 +18,16 @@ public class Tenant {
     private Long id;
 
     @Column(name = "tenant_id", nullable = false, unique = true, length = 50)
-    private String tenantId; // Ví dụ: tenant_company_a
+    private String tenantId;
 
     @Column(name = "company_name", nullable = false)
     private String companyName;
 
     @Column(name = "schema_name", nullable = false, unique = true, length = 60)
-    private String schemaName; // Ví dụ: schema_company_a
+    private String schemaName;
 
     @Column(name = "subscription_plan", nullable = false)
-    private String subscriptionPlan; // BASIC, VIP, ENTERPRISE
+    private String subscriptionPlan;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
