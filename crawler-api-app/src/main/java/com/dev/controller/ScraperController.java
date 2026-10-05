@@ -12,7 +12,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/scraper")
 public class ScraperController {
 
-    @Autowired
+    @Autowired  
     private ScraperFacadeService scraperFacadeService;
 
     @PostMapping

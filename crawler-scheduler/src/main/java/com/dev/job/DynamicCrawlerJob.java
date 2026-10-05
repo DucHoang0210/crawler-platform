@@ -1,8 +1,13 @@
 package com.dev.job;
 
 import com.dev.context.TenantContext;
+import com.dev.domain.JobConfig;
+import com.dev.domain.JobExecutionLog;
+import com.dev.domain.JobStatus;
 import com.dev.entity.ScraperResponse;
 import com.dev.service.JsoupScraperService;
+import com.dev.repository.JobConfigRepository;
+import com.dev.repository.JobExecutionLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobDataMap;
@@ -17,27 +22,51 @@ import org.springframework.stereotype.Component;
 public class DynamicCrawlerJob extends QuartzJobBean {
 
     private final JsoupScraperService jsoupScraperService;
+    private final JobConfigRepository jobConfigRepository;
+    private final JobExecutionLogRepository jobExecutionLogRepository;
 
     @Override
     protected void executeInternal(JobExecutionContext context) {
         JobDataMap dataMap = context.getMergedJobDataMap();
 
         String tenantId = dataMap.getString("tenantId");
-        String url = dataMap.getString("url");
-        String titleSelector = dataMap.getString("titleSelector");
-        String priceSelector = dataMap.getString("priceSelector");
+        Long jobConfigId = dataMap.getLong("jobConfigId");
 
-        // Thiết lập TenantContext cho luồng chạy ngầm của Quartz
         TenantContext.setCurrentTenant(tenantId);
-        log.info("Executing Job for Tenant: [{}] - URL: {}", tenantId, url);
+        JobExecutionLog executionLog = JobExecutionLog.builder()
+                .tenantId(tenantId)
+                .jobId(jobConfigId)
+                .startTime(java.time.LocalDateTime.now())
+                .status(JobStatus.FAILED)
+                .recordsFetched(0)
+                .build();
 
         try {
-            ScraperResponse result = jsoupScraperService.scrape(url, titleSelector, priceSelector);
+            JobConfig jobConfig = jobConfigRepository.findByIdAndTenantId(jobConfigId, tenantId)
+                    .orElseThrow(() -> new IllegalArgumentException("Job config not found: " + jobConfigId));
+
+            executionLog = jobExecutionLogRepository.save(executionLog);
+
+            log.info("Executing Job [{}] for Tenant: [{}] - URL: {}", jobConfig.getJobName(), tenantId, jobConfig.getTargetUrl());
+            ScraperResponse result = jsoupScraperService.scrape(
+                    jobConfig.getTargetUrl(),
+                    jobConfig.getCssSelector(),
+                    jobConfig.getXpathExpression()
+            );
             log.info("Scraped Successfully: Title = {}, Price = {}", result.getTitle(), result.getCurrentPrice());
 
-            // TODO (Tuần 3): Đẩy result vào Kafka Producer!
+            executionLog.setEndTime(java.time.LocalDateTime.now());
+            executionLog.setStatus(JobStatus.SUCCESS);
+            executionLog.setRecordsFetched(1);
+            executionLog.setErrorMessage(null);
+            jobExecutionLogRepository.save(executionLog);
         } catch (Exception e) {
-            log.error("Error executing crawler job for URL: {}", url, e);
+            executionLog.setEndTime(java.time.LocalDateTime.now());
+            executionLog.setStatus(JobStatus.FAILED);
+            executionLog.setRecordsFetched(0);
+            executionLog.setErrorMessage(e.getMessage());
+            jobExecutionLogRepository.save(executionLog);
+            log.error("Error executing crawler job for configId: {}", jobConfigId, e);
         } finally {
             TenantContext.clear();
         }

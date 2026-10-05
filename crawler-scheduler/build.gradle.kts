@@ -17,6 +17,8 @@ dependencies {
     implementation(project(":crawler-multitenancy"))
     implementation(project(":crawler-scraper"))
     implementation("org.springframework.boot:spring-boot-starter-quartz")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework:spring-context")
 }
 
 tasks.test {

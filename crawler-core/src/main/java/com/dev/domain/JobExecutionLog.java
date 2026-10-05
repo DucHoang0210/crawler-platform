@@ -17,6 +17,9 @@ public class JobExecutionLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "tenant_id", nullable = false, length = 50)
+    private String tenantId;
+
     @Column(name = "job_id", nullable = false)
     private Long jobId;
 

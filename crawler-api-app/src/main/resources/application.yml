@@ -2,6 +2,22 @@ server:
   port: 8080
 
 spring:
+  data:
+
+    redis:
+
+      host:
+        ${REDIS_HOST:localhost}
+
+      port:
+        ${REDIS_PORT:6379}
+
+      connect-timeout:
+        2s
+
+      timeout:
+        2s
+
   application:
     name: crawler-platform
 
@@ -14,8 +30,10 @@ spring:
   jpa:
     show-sql: true
     open-in-view: false
+
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
+
     properties:
       hibernate:
         format_sql: true
@@ -26,11 +44,49 @@ spring:
     locations: classpath:db/migration/public
 
   quartz:
-    job-store-type: jdbc
+    job-store-type: memory
     jdbc:
-      initialize-schema: always
+      initialize-schema: never
     properties:
       org.quartz.scheduler.instanceName: DynamicCrawlerScheduler
       org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreTX
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.dataSource: quartzDataSource
       org.quartz.jobStore.useProperties: false
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.clusterCheckinInterval: 10000
+      org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
+      org.quartz.threadPool.threadCount: 10
+      org.quartz.dataSource.quartzDataSource.driver: org.postgresql.Driver
+      org.quartz.dataSource.quartzDataSource.URL: ${spring.datasource.url}
+      org.quartz.dataSource.quartzDataSource.user: ${spring.datasource.username}
+      org.quartz.dataSource.quartzDataSource.password: ${spring.datasource.password}
+      org.quartz.dataSource.quartzDataSource.maxConnections: 5
+    auto-startup: true
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.0-flash}
+
+
+crawler:
+  outbox:
+    initial-delay-ms: 10000
+    dispatch-delay-ms: 3000
+
+    redis:
+
+      key-prefix:
+        ${REDIS_KEY_PREFIX:crawler:local}
+
+      session-ttl:
+        60m
+
+      tenant-access-ttl:
+        5m
+
+      monitor-lock-ttl:
+        2m

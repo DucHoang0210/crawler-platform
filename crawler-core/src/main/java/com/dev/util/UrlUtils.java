@@ -3,7 +3,7 @@ package com.dev.util;
 import java.net.URI;
 import java.util.Locale;
 
-public class UrlUtils {
+public class    UrlUtils {
 
     public static String extractDomain(String url) {
         try {

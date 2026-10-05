@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DiffGenerationConfig">
+    <option name="sourceModelValue" value="crawler-platform.crawler-core.main:entityManagerFactory" />
+    <option name="targetDbValue" value="97d7f9d3-f8c2-4818-b6a2-796515a9dadd" />
+  </component>
+</project>

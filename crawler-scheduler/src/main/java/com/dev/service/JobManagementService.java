@@ -1,7 +1,8 @@
-package com.dev.job;
+package com.dev.service;
 
 import com.dev.domain.JobConfig;
 import com.dev.domain.JobStatus;
+import com.dev.job.DynamicCrawlerJob;
 import com.dev.repository.JobConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.quartz.*;
@@ -23,6 +24,7 @@ public class JobManagementService {
             }
 
             JobConfig jobConfig = JobConfig.builder()
+                    .tenantId(tenantId)
                     .jobName(jobName)
                     .targetUrl(url)
                     .cronExpression(cronExpression)
@@ -64,6 +66,11 @@ public class JobManagementService {
             throw new IllegalArgumentException("Trigger not found for job: " + jobName);
         }
 
+        JobConfig jobConfig = jobConfigRepository.findByTenantIdAndJobName(tenantId, jobName)
+                .orElseThrow(() -> new IllegalArgumentException("Job config not found for tenant/job: " + tenantId + "/" + jobName));
+        jobConfig.setCronExpression(newCronExpression);
+        jobConfigRepository.save(jobConfig);
+
         Trigger newTrigger = TriggerBuilder.newTrigger()
                 .withIdentity(triggerKey)
                 .forJob(new JobKey(jobName, tenantId))
@@ -82,6 +89,9 @@ public class JobManagementService {
     }
 
     public void deleteJob(String tenantId, String jobName) throws SchedulerException {
+        JobConfig jobConfig = jobConfigRepository.findByTenantIdAndJobName(tenantId, jobName)
+                .orElseThrow(() -> new IllegalArgumentException("Job config not found for tenant/job: " + tenantId + "/" + jobName));
         scheduler.deleteJob(new JobKey(jobName, tenantId));
+        jobConfigRepository.delete(jobConfig);
     }
 }

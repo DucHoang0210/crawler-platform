@@ -16,17 +16,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.postgresql:postgresql")
-
     implementation(project(":crawler-core"))
     implementation(project(":crawler-multitenancy"))
     implementation(project(":crawler-scraper"))
     implementation(project(":crawler-scheduler"))
+    implementation(project(":crawler-notification"))
     implementation(project(":crawler-ai"))
-    implementation(project(":crawler-kafka"))
-
-    // OpenAPI / Swagger Documentation
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
 }
 

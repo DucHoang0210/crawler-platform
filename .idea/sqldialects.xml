@@ -4,5 +4,9 @@
     <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/public/V1__init_public_schema.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/public/V2__add_selectors_to_domain_config.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V1__init_tenant_schema.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V2__price_intelligence_core.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V3__notification_outbox.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V4__demo_products.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/crawler-core/src/main/resources/db/migration/V1__.sql" dialect="GenericSQL" />
   </component>
 </project>

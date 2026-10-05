@@ -5,7 +5,12 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "job_configs")
+@Table(
+        name = "job_configs",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_job_configs_tenant_job_name", columnNames = {"tenant_id", "job_name"})
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,6 +21,9 @@ public class JobConfig {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id", nullable = false, length = 50)
+    private String tenantId;
 
     @Column(name = "job_name", nullable = false)
     private String jobName;
