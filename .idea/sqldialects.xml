@@ -7,6 +7,8 @@
     <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V2__price_intelligence_core.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V3__notification_outbox.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V4__demo_products.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V5__create_crawl_evidences.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/crawler-api-app/src/main/resources/db/migration/tenant/V6__add_crawl_evidence_unique_constraint.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/crawler-core/src/main/resources/db/migration/V1__.sql" dialect="GenericSQL" />
   </component>
 </project>

@@ -1,25 +1,27 @@
 package com.dev.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Getter
-@Setter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class PriceResultResponse {
+public record PriceResultResponse (
 
-    private BigDecimal regularPrice;
+    BigDecimal regularPrice,
 
-    private BigDecimal salePrice;
+    BigDecimal salePrice,
 
-    private BigDecimal effectivePrice;
+    BigDecimal effectivePrice,
 
-    private Boolean inStock;
+    Boolean inStock,
 
-    private String promotionText;
+    String promotionText,
 
-    private boolean available;
+    boolean available,
+
+    ScrapeEvidence evidence
+) {
 }

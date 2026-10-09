@@ -19,6 +19,7 @@ dependencies {
     implementation("io.swagger.core.v3:swagger-annotations:2.2.20")
     implementation("jakarta.validation:jakarta.validation-api")
     implementation("org.projectlombok:lombok")
+    implementation("org.springframework:spring-web:7.1.0-M1")
     annotationProcessor("org.projectlombok:lombok")
     implementation(project(":crawler-common"))
 }

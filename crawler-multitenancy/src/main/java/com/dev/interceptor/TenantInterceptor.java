@@ -1,24 +1,37 @@
 package com.dev.interceptor;
 
+import com.dev.cache.TenantAccessCache;
+import com.dev.cache.TenantAccessInfo;
 import com.dev.context.TenantContext;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.EmptyResultDataAccessException;
+
 import org.springframework.jdbc.core.JdbcTemplate;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Component;
+
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+
 
 @Component
 @RequiredArgsConstructor
-public class TenantInterceptor implements HandlerInterceptor {
+public class TenantInterceptor
+        implements HandlerInterceptor {
 
     private final JdbcTemplate jdbcTemplate;
+
+    private final TenantAccessCache tenantAccessCache;
+
 
     @Override
     public boolean preHandle(
@@ -28,53 +41,84 @@ public class TenantInterceptor implements HandlerInterceptor {
     ) throws Exception {
 
         /*
-         * Tránh ThreadLocal cũ còn sót lại nếu thread
-         * được application server tái sử dụng.
+         * Tránh ThreadLocal cũ còn sót lại
+         * nếu thread được application server tái sử dụng.
          */
         TenantContext.clear();
 
-        String path = request.getRequestURI();
+
+        String path =
+                request.getRequestURI();
+
 
         // =====================================================
-        // 1. OPTIONS / CORS preflight
+        // 1. OPTIONS / CORS PREFLIGHT
         // =====================================================
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+
+        if (
+                "OPTIONS".equalsIgnoreCase(
+                        request.getMethod()
+                )
+        ) {
+
             return true;
         }
 
-        // =====================================================
-        // 2. Các API không cần X-Tenant-ID
-        // =====================================================
-        if (
-                path.startsWith("/api/v1/auth/")
-                        || path.equals("/api/v1/tenants/register")
-                        || path.equals("/api/v1/tenants/my-tenants")
 
-                        // Swagger / OpenAPI
+        // =====================================================
+        // 2. API KHÔNG CẦN X-TENANT-ID
+        // =====================================================
+
+        if (
+                path.startsWith(
+                        "/api/v1/auth/"
+                )
+
+                        || path.equals(
+                        "/api/v1/tenants/register"
+                )
+
+                        || path.equals(
+                        "/api/v1/tenants/my-tenants"
+                )
+
+                        || path.equals(
+                        "/error"
+                )
+
                         || path.startsWith(
                         "/swagger-ui"
                 )
+
                         || path.startsWith(
                         "/v3/api-docs"
                 )
+
                         || path.startsWith(
                         "/webjars/"
                 )
         ) {
+
             return true;
         }
 
+
         // =====================================================
-        // 3. Kiểm tra Authentication
+        // 3. KIỂM TRA AUTHENTICATION
         // =====================================================
+
         Authentication authentication =
                 SecurityContextHolder
                         .getContext()
                         .getAuthentication();
 
+
         if (
                 authentication == null
-                        || !authentication.isAuthenticated()
+
+                        || !authentication
+                        .isAuthenticated()
+
                         || "anonymousUser".equals(
                         authentication.getPrincipal()
                 )
@@ -87,16 +131,24 @@ public class TenantInterceptor implements HandlerInterceptor {
                     "User is not authenticated"
             );
 
+
             return false;
         }
 
+
         // =====================================================
-        // 4. Principal hiện tại là username String
+        // 4. PRINCIPAL HIỆN TẠI LÀ USERNAME STRING
         // =====================================================
+
         String username =
                 authentication.getName();
 
-        if (username == null || username.isBlank()) {
+
+        if (
+                username == null
+                        ||
+                        username.isBlank()
+        ) {
 
             sendError(
                     response,
@@ -105,60 +157,25 @@ public class TenantInterceptor implements HandlerInterceptor {
                     "Authenticated username is missing"
             );
 
-            return false;
-        }
-
-        // =====================================================
-        // 5. Tìm userId trong public.users
-        // =====================================================
-        Long userId;
-
-        try {
-
-            userId = jdbcTemplate.queryForObject(
-                    """
-                    SELECT id
-                    FROM public.users
-                    WHERE username = ?
-                    """,
-                    Long.class,
-                    username
-            );
-
-        } catch (EmptyResultDataAccessException e) {
-
-            sendError(
-                    response,
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHORIZED",
-                    "Authenticated user not found"
-            );
 
             return false;
         }
 
-        if (userId == null) {
-
-            sendError(
-                    response,
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHORIZED",
-                    "Authenticated user not found"
-            );
-
-            return false;
-        }
 
         // =====================================================
-        // 6. Đọc X-Tenant-ID
-        // VD: tenant_hoang_duc
+        // 5. ĐỌC X-TENANT-ID
         // =====================================================
+
         String businessTenantId =
-                request.getHeader("X-Tenant-ID");
+                request.getHeader(
+                        "X-Tenant-ID"
+                );
+
 
         if (
                 businessTenantId == null
-                        || businessTenantId.isBlank()
+                        ||
+                        businessTenantId.isBlank()
         ) {
 
             sendError(
@@ -168,42 +185,122 @@ public class TenantInterceptor implements HandlerInterceptor {
                     "Header X-Tenant-ID is required"
             );
 
+
             return false;
         }
+
 
         businessTenantId =
                 businessTenantId.trim();
 
-        // =====================================================
-        // 7. Kiểm tra:
-        //
-        // - Tenant có tồn tại
-        // - Tenant ACTIVE
-        // - User có thuộc tenant
-        // =====================================================
-        String sql = """
-                SELECT t.schema_name
-                FROM public.tenants t
-                INNER JOIN public.tenant_users tu
-                    ON tu.tenant_id = t.id
-                WHERE t.tenant_id = ?
-                  AND tu.user_id = ?
-                  AND t.status = 'ACTIVE'
-                """;
 
-        List<String> schemas =
-                jdbcTemplate.query(
-                        sql,
-                        (rs, rowNum) ->
-                                rs.getString("schema_name"),
-                        businessTenantId,
-                        userId
+        // =====================================================
+        // 6. REDIS CACHE FIRST
+        // =====================================================
+
+        Optional<TenantAccessInfo> cached =
+                tenantAccessCache.get(
+                        username,
+                        businessTenantId
                 );
 
+
+        if (
+                cached.isPresent()
+        ) {
+
+            TenantAccessInfo access =
+                    cached.get();
+
+
+            // Cache cũng phải được validate.
+            if (
+                    !isValidSchemaName(
+                            access.schemaName()
+                    )
+            ) {
+
+                sendError(
+                        response,
+                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                        "INVALID_TENANT_SCHEMA",
+                        "Tenant schema configuration is invalid"
+                );
+
+
+                return false;
+            }
+
+
+            applyTenantContext(
+                    request,
+                    businessTenantId,
+                    access
+            );
+
+
+            return true;
+        }
+
+
         // =====================================================
-        // 8. Không có quyền tenant
+        // 7. CACHE MISS -> QUERY POSTGRESQL
+        //
+        // Một query duy nhất lấy:
+        // - userId
+        // - schemaName
+        // - đồng thời kiểm tra user thuộc tenant
+        // - tenant đang ACTIVE
         // =====================================================
-        if (schemas.isEmpty()) {
+
+        List<TenantAccessInfo> results =
+                jdbcTemplate.query(
+
+                        """
+                        SELECT
+                            u.id AS user_id,
+                            t.schema_name
+
+                        FROM public.users u
+
+                        INNER JOIN public.tenant_users tu
+                            ON tu.user_id = u.id
+
+                        INNER JOIN public.tenants t
+                            ON t.id = tu.tenant_id
+
+                        WHERE u.username = ?
+                          AND t.tenant_id = ?
+                          AND t.status = 'ACTIVE'
+                        """,
+
+                        (
+                                rs,
+                                rowNum
+                        ) ->
+                                new TenantAccessInfo(
+
+                                        rs.getLong(
+                                                "user_id"
+                                        ),
+
+                                        rs.getString(
+                                                "schema_name"
+                                        )
+                                ),
+
+                        username,
+                        businessTenantId
+                );
+
+
+        // =====================================================
+        // 8. KHÔNG CÓ QUYỀN TENANT / TENANT KHÔNG ACTIVE
+        // =====================================================
+
+        if (
+                results.isEmpty()
+        ) {
 
             sendError(
                     response,
@@ -212,19 +309,22 @@ public class TenantInterceptor implements HandlerInterceptor {
                     "Access denied to this tenant or tenant inactive"
             );
 
+
             return false;
         }
 
-        String targetSchema =
-                schemas.get(0);
+
+        TenantAccessInfo access =
+                results.get(0);
+
 
         // =====================================================
-        // 9. Validate schema lấy từ DB
+        // 9. VALIDATE SCHEMA LẤY TỪ DATABASE
         // =====================================================
+
         if (
-                targetSchema == null
-                        || !targetSchema.matches(
-                        "^schema_[a-z0-9_]+$"
+                !isValidSchemaName(
+                        access.schemaName()
                 )
         ) {
 
@@ -235,43 +335,94 @@ public class TenantInterceptor implements HandlerInterceptor {
                     "Tenant schema configuration is invalid"
             );
 
+
             return false;
         }
 
+
         // =====================================================
-        // 10. Chỉ SET TenantContext
-        //
-        // KHÔNG SET search_path tại đây.
+        // 10. LƯU KẾT QUẢ VÀO REDIS
         // =====================================================
-        TenantContext.setCurrentTenant(
-                targetSchema
+
+        tenantAccessCache.put(
+                username,
+                businessTenantId,
+                access
         );
 
-        /*
-         * Optional:
-         * lưu thêm thông tin vào request nếu Controller cần.
-         */
+
+        // =====================================================
+        // 11. SET TENANT CONTEXT
+        //
+        // KHÔNG SET search_path tại interceptor.
+        // TenantExecutionService sẽ xử lý search_path.
+        // =====================================================
+
+        applyTenantContext(
+                request,
+                businessTenantId,
+                access
+        );
+
+
+        return true;
+    }
+
+
+    // =========================================================
+    // APPLY TENANT INFORMATION
+    // =========================================================
+
+    private void applyTenantContext(
+            HttpServletRequest request,
+            String businessTenantId,
+            TenantAccessInfo access
+    ) {
+
+        TenantContext.setCurrentTenant(
+                access.schemaName()
+        );
+
+
         request.setAttribute(
                 "tenantId",
                 businessTenantId
         );
 
+
         request.setAttribute(
                 "tenantSchema",
-                targetSchema
+                access.schemaName()
         );
+
 
         request.setAttribute(
                 "currentUserId",
-                userId
+                access.userId()
         );
-
-        return true;
     }
+
+
+    // =========================================================
+    // VALIDATE SCHEMA NAME
+    // =========================================================
+
+    private boolean isValidSchemaName(
+            String schemaName
+    ) {
+
+        return schemaName != null
+
+                && schemaName.matches(
+                "^schema_[a-z0-9_]+$"
+        );
+    }
+
 
     // =========================================================
     // REQUEST HOÀN THÀNH
     // =========================================================
+
     @Override
     public void afterCompletion(
             HttpServletRequest request,
@@ -283,9 +434,11 @@ public class TenantInterceptor implements HandlerInterceptor {
         TenantContext.clear();
     }
 
+
     // =========================================================
     // JSON ERROR RESPONSE
     // =========================================================
+
     private void sendError(
             HttpServletResponse response,
             int status,
@@ -293,25 +446,34 @@ public class TenantInterceptor implements HandlerInterceptor {
             String message
     ) throws IOException {
 
-        response.setStatus(status);
+        response.setStatus(
+                status
+        );
+
+
         response.setContentType(
                 "application/json"
         );
+
+
         response.setCharacterEncoding(
                 "UTF-8"
         );
 
-        response.getWriter().write(
-                String.format(
-                        """
-                        {
-                          "error": "%s",
-                          "message": "%s"
-                        }
-                        """,
-                        code,
-                        message
-                )
-        );
+
+        response
+                .getWriter()
+                .write(
+                        String.format(
+                                """
+                                {
+                                  "error": "%s",
+                                  "message": "%s"
+                                }
+                                """,
+                                code,
+                                message
+                        )
+                );
     }
 }

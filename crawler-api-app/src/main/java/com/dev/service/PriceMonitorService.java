@@ -7,14 +7,18 @@ import com.dev.dto.PriceAlertEvent;
 import com.dev.dto.PriceResultResponse;
 import com.dev.notification.AlertPublisher;
 import com.dev.repository.CompetitorListingRepository;
+import com.dev.context.TenantContext;
+import com.dev.event.PriceSnapshotEvidenceEvent;
 
 import com.dev.repository.PriceAlertRepository;
 import com.dev.repository.PriceSnapshotRepository;
 import com.dev.engine.PriceScraper;
 import com.dev.engine.PriceScraperRegistry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,6 +26,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PriceMonitorService {
 
     private final CompetitorListingRepository
@@ -38,13 +43,16 @@ public class PriceMonitorService {
 
     private final AlertPublisher alertPublisher;
 
+    private final ApplicationEventPublisher eventPublisher;
+
     @Transactional
-    public void monitor(Long listingId) {
+    public void monitor(Long listingId) throws InterruptedException {
 
         // =========================================
         // 1. Tìm listing
         // =========================================
 
+        Thread.sleep(30000);
         CompetitorListing listing =
                 competitorListingRepository
                         .findById(listingId)
@@ -83,6 +91,13 @@ public class PriceMonitorService {
                     listing.getProductUrl()
             );
 
+            log.info(
+                    "M5 TEST: evidenceExists={}, hasContent={}",
+                    result.evidence() != null,
+                    result.evidence() != null
+                            && result.evidence().hasContent()
+            );
+
         } catch (Exception e) {
 
             listing.setLastCrawlStatus(
@@ -105,8 +120,8 @@ public class PriceMonitorService {
         }
 
         if (result == null
-                || !result.isAvailable()
-                || result.getEffectivePrice() == null) {
+                || !result.available()
+                || result.effectivePrice() == null) {
 
             listing.setLastCrawlStatus(
                     "FAILED"
@@ -135,7 +150,7 @@ public class PriceMonitorService {
                 listing.getLastEffectivePrice();
 
         BigDecimal newPrice =
-                result.getEffectivePrice();
+                result.effectivePrice();
 
         // =========================================
         // 5. Tính biến động so với lần crawl trước
@@ -153,7 +168,7 @@ public class PriceMonitorService {
 
         BigDecimal discountPercent =
                 calculateDiscountPercent(
-                        result.getRegularPrice(),
+                        result.regularPrice(),
                         newPrice
                 );
 
@@ -163,12 +178,12 @@ public class PriceMonitorService {
 
         PriceSnapshot snapshot = PriceSnapshot.builder()
                         .competitorListingId(listing.getId())
-                        .regularPrice(result.getRegularPrice())
-                        .salePrice(result.getSalePrice())
+                        .regularPrice(result.regularPrice())
+                        .salePrice(result.salePrice())
                         .effectivePrice(newPrice)
                         .discountPercent(discountPercent)
-                        .inStock(result.getInStock())
-                        .promotionText(result.getPromotionText())
+                        .inStock(result.inStock())   
+                        .promotionText(result.promotionText())
                         .crawledAt(LocalDateTime.now())
                         .build();
 
@@ -177,24 +192,30 @@ public class PriceMonitorService {
                         snapshot
                 );
 
+
+        publishEvidenceEvent(
+                listing,
+                snapshot,
+                result
+        );
         // =========================================
         // 8. Update trạng thái listing
         // =========================================
 
         listing.setLastRegularPrice(
-                result.getRegularPrice()
+                result.regularPrice()
         );
 
         listing.setLastSalePrice(
-                result.getSalePrice()
+                result.salePrice()
         );
 
         listing.setLastEffectivePrice(
-                newPrice
+                result.effectivePrice()
         );
 
         listing.setLastInStock(
-                result.getInStock()
+                result.inStock()
         );
 
         listing.setLastCrawledAt(
@@ -218,9 +239,6 @@ public class PriceMonitorService {
         // =========================================
 
         if (oldPrice == null) {
-
-            // Chỉ ghi nhận baseline.
-            // Không tạo alert.
 
             return;
         }
@@ -318,6 +336,83 @@ public class PriceMonitorService {
                 event
         );
 
+    }
+// =====================================================
+// CRAWL EVIDENCE Publisher
+// =====================================================
+    private void publishEvidenceEvent(
+
+            CompetitorListing listing,
+
+            PriceSnapshot snapshot,
+
+            PriceResultResponse result
+    ) {
+
+        if (
+                result == null
+                        ||
+                        result.evidence() == null
+                        ||
+                        !result.evidence().hasContent()
+        ) {
+
+            log.debug(
+                    "No crawl evidence available. listingId={}, snapshotId={}",
+                    listing.getId(),
+                    snapshot.getId()
+            );
+
+            return;
+        }
+
+
+        String schemaName =
+                TenantContext
+                        .getCurrentTenant();
+
+
+        if (
+                schemaName == null
+                        ||
+                        schemaName.isBlank()
+        ) {
+
+            log.warn(
+                    "Cannot publish crawl evidence because tenant schema is missing. listingId={}, snapshotId={}",
+                    listing.getId(),
+                    snapshot.getId()
+            );
+
+            return;
+        }
+
+
+        eventPublisher.publishEvent(
+
+                new PriceSnapshotEvidenceEvent(
+
+                        schemaName,
+
+                        snapshot.getId(),
+
+                        listing.getId(),
+
+                        result.evidence()
+                                .rawPayload(),
+
+                        result.evidence()
+                                .contentType()
+                )
+        );
+
+
+        log.debug(
+                "Crawl evidence event published. schema={}, listingId={}, snapshotId={}",
+                schemaName,
+                listing.getId(),
+                snapshot.getId()
+        );
     }
 
     // =====================================================

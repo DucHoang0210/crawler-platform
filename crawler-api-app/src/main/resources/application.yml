@@ -18,6 +18,9 @@ spring:
       timeout:
         2s
 
+      repositories:
+        enabled: false
+
   application:
     name: crawler-platform
 
@@ -66,6 +69,11 @@ spring:
       org.quartz.dataSource.quartzDataSource.maxConnections: 5
     auto-startup: true
 
+  autoconfigure:
+
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
 gemini:
   api:
     key: ${GEMINI_API_KEY:}
@@ -90,3 +98,29 @@ crawler:
 
       monitor-lock-ttl:
         2m
+
+  storage:
+
+    minio:
+
+      enabled: true
+
+      endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+
+      access-key: ${MINIO_ACCESS_KEY:minioadmin}
+
+      secret-key: ${MINIO_SECRET_KEY:ChangeMe123456!}
+
+      presigned-url-ttl: 15m
+
+      buckets:
+
+        evidence: crawler-evidence
+
+        reports: crawler-reports
+
+        imports: crawler-imports
+
+logging:
+  level:
+    org.flywaydb: WARN

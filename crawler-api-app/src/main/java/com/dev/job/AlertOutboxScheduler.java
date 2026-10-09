@@ -1,8 +1,8 @@
 package com.dev.job;
 
 import com.dev.repository.TenantRepository;
-import com.dev.service.WebhookDispatchExecutor;
 
+import com.dev.service.WebhookDispatchExecutor;
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;

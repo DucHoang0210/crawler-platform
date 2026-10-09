@@ -2,7 +2,6 @@ package com.dev.controller;
 
 import com.dev.config.OpenApiConfig;
 import com.dev.context.TenantContext;
-import com.dev.domain.WebhookConfig;
 import com.dev.dto.WebhookConfigRequest;
 import com.dev.service.TenantExecutionService;
 import com.dev.service.WebhookConfigService;

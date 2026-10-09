@@ -1,8 +1,8 @@
 package com.dev.startup;
 
 import com.dev.repository.TenantRepository;
-import com.dev.service.TenantMigrationService;
 
+import com.dev.service.TenantMigrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +21,6 @@ public class TenantMigrationRunner
 
     private final TenantMigrationService
             tenantMigrationService;
-
 
     @Override
     public void run(
@@ -53,7 +52,7 @@ public class TenantMigrationRunner
 
                             try {
 
-                                log.info(
+                                log.debug(
                                         "Running tenant migration. tenantId={}, schema={}",
                                         tenant.getTenantId(),
                                         schemaName
@@ -66,7 +65,7 @@ public class TenantMigrationRunner
                                         );
 
 
-                                log.info(
+                                log.debug(
                                         "Tenant migration completed. tenantId={}, schema={}",
                                         tenant.getTenantId(),
                                         schemaName
@@ -82,6 +81,7 @@ public class TenantMigrationRunner
                                 );
                             }
                         }
+
                 );
     }
 }

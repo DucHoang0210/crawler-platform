@@ -1,7 +1,7 @@
 package com.dev.engine;
 
-import com.dev.domain.DemoProduct;
 import com.dev.dto.PriceResultResponse;
+import com.dev.dto.ScrapeEvidence;
 import com.dev.repository.DemoProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -32,76 +32,39 @@ public class DemoPriceScraper
 
 
     @Override
-    public PriceResultResponse fetchPrice(
-            String url
-    ) {
-
-        UUID publicId =
-                extractProductId(
-                        url
-                );
-
-
-        DemoProduct product =
-                demoProductRepository
-                        .findByPublicId(
-                                publicId
-                        )
-
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Demo product not found: "
-                                                + publicId
-                                )
-                        );
-
+    public PriceResultResponse fetchPrice(String url) {
 
         BigDecimal regularPrice =
-                product.getRegularPrice();
-
-        BigDecimal currentPrice =
-                product.getCurrentPrice();
-
+                new BigDecimal("899000");
 
         BigDecimal salePrice = null;
 
-        if (
-                currentPrice.compareTo(
-                        regularPrice
-                ) < 0
-        ) {
+        BigDecimal effectivePrice = regularPrice;
 
-            salePrice =
-                    currentPrice;
-        }
+        String rawHtml =
+                """
+                <html>
+                    <body>
+                        <h1>Demo Product</h1>
+                        <div class="price">899000</div>
+                    </body>
+                </html>
+                """;
 
+        ScrapeEvidence evidence = new ScrapeEvidence(
+                rawHtml,
+                "text/html; charset=UTF-8"
+        );
 
-        return PriceResultResponse
-                .builder()
-
-                .regularPrice(
-                        regularPrice
-                )
-
-                .salePrice(
-                        salePrice
-                )
-
-                .effectivePrice(
-                        currentPrice
-                )
-
-                .inStock(
-                        product.getInStock()
-                )
-
-                .promotionText(
-                        product.getPromotionText()
-                )
-
-                .available(true)
-
-                .build();
+        return new PriceResultResponse(
+                regularPrice,
+                salePrice,
+                effectivePrice,
+                Boolean.TRUE,
+                "Demo Product",
+                true,
+                evidence
+        );
     }
 
 

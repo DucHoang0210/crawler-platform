@@ -43,7 +43,7 @@ public class PriceMonitorJobExecutor
 
         if (lockToken == null) {
 
-            log.info(
+            log.debug(
                     "Price monitor skipped because another execution is already running. schema={}, listingId={}",
                     schemaName,
                     listingId
@@ -61,7 +61,13 @@ public class PriceMonitorJobExecutor
             tenantExecutionService.execute(
                     schemaName,
 
-                    () -> priceMonitorService.monitor(listingId)
+                    () -> {
+                        try {
+                            priceMonitorService.monitor(listingId);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
             );
 
 

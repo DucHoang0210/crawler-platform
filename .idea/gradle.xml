@@ -17,6 +17,7 @@
             <option value="$PROJECT_DIR$/crawler-notification" />
             <option value="$PROJECT_DIR$/crawler-scheduler" />
             <option value="$PROJECT_DIR$/crawler-scraper" />
+            <option value="$PROJECT_DIR$/crawler-storage" />
             <option value="$PROJECT_DIR$/crawler-webhook" />
           </set>
         </option>

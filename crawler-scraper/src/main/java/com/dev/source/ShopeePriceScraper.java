@@ -1,6 +1,7 @@
 package com.dev.source;
 
 import com.dev.dto.PriceResultResponse;
+import com.dev.dto.ScrapeEvidence;
 import com.dev.engine.PriceResult;
 import com.dev.engine.PriceScraper;
 import org.springframework.stereotype.Component;
@@ -27,7 +28,11 @@ public class ShopeePriceScraper implements PriceScraper {
                 price, // effectivePrice
                 true, // inStock
                 "Shopee sale 0%", // promotionText
-                true // available
+                true, // available
+                new ScrapeEvidence(
+                        "<html><body>Mocked HTML content for Shopee product page</body></html>",
+                        "text/html"
+                )
         );
     }
 }

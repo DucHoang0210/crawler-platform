@@ -3,9 +3,9 @@ package com.dev.controller;
 import com.dev.context.TenantContext;
 import com.dev.dto.CompetitorResponse;
 import com.dev.dto.CreateCompetitorRequest;
+
 import com.dev.service.CompetitorService;
 import com.dev.service.TenantExecutionService;
-
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;

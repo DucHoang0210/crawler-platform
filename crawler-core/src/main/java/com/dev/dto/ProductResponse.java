@@ -1,5 +1,6 @@
 package com.dev.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 public record ProductResponse(
@@ -12,5 +13,6 @@ public record ProductResponse(
 
         BigDecimal ownPrice
 
-) {
+) implements Serializable {
+    private static final long serialVersionUID = 1L;
 }

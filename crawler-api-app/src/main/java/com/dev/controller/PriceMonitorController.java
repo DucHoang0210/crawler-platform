@@ -5,11 +5,12 @@ import com.dev.context.TenantContext;
 import com.dev.domain.PriceMonitorScheduleMode;
 import com.dev.domain.RecurrenceType;
 import com.dev.dto.SchedulePriceMonitorRequest;
+import com.dev.exception.RateLimitExceededException;
 
 import com.dev.scheduler.PriceMonitorScheduler;
 
 import com.dev.service.PriceMonitorJobExecutor;
-
+import com.dev.service.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
@@ -35,7 +37,7 @@ public class PriceMonitorController {
     private final PriceMonitorScheduler
             scheduler;
 
-
+    private final RateLimitService rateLimitService;
 
     // =========================================================
     // MANUAL RUN
@@ -43,8 +45,41 @@ public class PriceMonitorController {
 
     @PostMapping("/{listingId}/run")
     public ResponseEntity<?> run(
-            @PathVariable Long listingId
+            @PathVariable Long listingId,
+            HttpServletRequest request
     ) {
+
+        Long userId = (Long) request.getAttribute("currentUserId");
+
+
+        if (userId == null) {
+
+            throw new IllegalStateException(
+                    "Current user id is missing"
+            );
+        }
+
+
+        String key =
+                "crawler:local:rate:price-monitor:"
+                        + userId;
+
+
+        boolean allowed =
+                rateLimitService.allow(
+                        key,
+                        10,
+                        Duration.ofMinutes(1)
+                );
+
+
+        if (!allowed) {
+
+            throw new RateLimitExceededException(
+                    "Price monitor request limit exceeded"
+            );
+        }
+
 
         String schemaName =
                 TenantContext.getCurrentTenant();

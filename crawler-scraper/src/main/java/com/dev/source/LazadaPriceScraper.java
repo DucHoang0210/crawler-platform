@@ -1,6 +1,7 @@
 package com.dev.source;
 
 import com.dev.dto.PriceResultResponse;
+import com.dev.dto.ScrapeEvidence;
 import com.dev.engine.PriceResult;
 import com.dev.engine.PriceScraper;
 
@@ -22,7 +23,11 @@ public class LazadaPriceScraper implements PriceScraper {
                 new BigDecimal("120000"), // effectivePrice
                 true, // inStock
                 "Lazada sale 20%", // promotionText
-                true // available
+                true, // available
+                new ScrapeEvidence(
+                        "ScrapeEnvidence Payload",
+                        "ScrapeEnvidence ContenType"
+                )
         );
     }
 }
